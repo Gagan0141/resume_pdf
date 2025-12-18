@@ -3,49 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Management System</title>
+    <title>PDF Ocean Management System</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js and Tweakpane -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js"></script>
     <style>
+        /* Ocean Background Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            overflow-x: hidden;
+            color: white;
+            background: linear-gradient(to bottom, #0a0a15, #1a0a20);
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* PDF System Styles */
         .login-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        
         .main-container {
             min-height: 100vh;
-            background-color: #f8f9fa;
         }
+        
         .file-preview {
             max-height: 300px;
             overflow-y: auto;
         }
+        
         .pdf-card {
             transition: transform 0.2s;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(20, 20, 40, 0.7);
+            backdrop-filter: blur(10px);
         }
+        
         .pdf-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(255, 170, 0, 0.3);
+            border-color: rgba(255, 170, 0, 0.3);
         }
+        
         .nav-pills .nav-link {
-            color: #4c51bf;
+            color: #ffaa00;
             font-weight: 600;
         }
+        
         .nav-pills .nav-link.active {
-            background: linear-gradient(to right, #667eea, #764ba2);
+            background: linear-gradient(to right, #ffaa00, #ff3300);
             color: white;
         }
+        
         .pdf-preview-container {
             height: 500px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             overflow: hidden;
+            background: rgba(10, 10, 21, 0.5);
         }
+        
         .empty-state {
             display: flex;
             flex-direction: column;
@@ -53,92 +100,147 @@
             justify-content: center;
             height: 100%;
             padding: 2rem;
-            color: #718096;
+            color: #a0a0c0;
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(45deg, #ffaa00, #ff3300);
+            border: none;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 170, 0, 0.3);
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 170, 0, 0.5);
+        }
+        
+        input, textarea {
+            background: rgba(10, 10, 21, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+        }
+        
+        .form-control:focus {
+            border-color: #ffaa00 !important;
+            box-shadow: 0 0 0 0.2rem rgba(255, 170, 0, 0.25) !important;
+        }
+        
+        .navbar {
+            background: rgba(10, 10, 21, 0.7) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ffaa00, #8888aa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 1rem;
+            }
+            
+            .pdf-preview-container {
+                height: 400px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Login Page -->
-    <div id="loginPage" class="login-container">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
-            <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">PDF Management</h1>
-                <p class="text-gray-600 mt-2">Sign in to access your documents</p>
-            </div>
-            
-            <form id="loginForm">
-                <div class="mb-4">
-                    <label for="username" class="block text-gray-700 font-medium mb-2">Username</label>
-                    <input type="text" 
-                           id="username" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
-                           required>
+    <!-- Ocean Background Canvas -->
+    <div id="canvas-container"></div>
+    
+    <div class="content-wrapper">
+        <!-- Login Page -->
+        <div id="loginPage" class="login-container">
+            <div class="bg-[rgba(20,20,40,0.7)] p-8 rounded-xl shadow-2xl w-full max-w-md backdrop-blur-sm border border-[rgba(255,255,255,0.1)]">
+                <div class="text-center mb-6">
+                    <h1 class="text-3xl font-bold" style="background: linear-gradient(45deg, #ffaa00, #8888aa); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        PDF Ocean Manager
+                    </h1>
+                    <p class="text-[#e0e0ff] mt-2">Sign in to access your documents</p>
                 </div>
                 
-                <div class="mb-6">
-                    <label for="password" class="block text-gray-700 font-medium mb-2">Password</label>
-                    <input type="password" 
-                           id="password" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
-                           required>
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label for="username" class="block text-[#e0e0ff] font-medium mb-2">Username</label>
+                        <input type="text" 
+                               id="username" 
+                               class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#ffaa00] focus:outline-none"
+                               required>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="password" class="block text-[#e0e0ff] font-medium mb-2">Password</label>
+                        <input type="password" 
+                               id="password" 
+                               class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#ffaa00] focus:outline-none"
+                               required>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full btn-gradient py-2 px-4 rounded-lg font-medium">
+                        Sign In
+                    </button>
+                </form>
+                <div class="mt-4 text-center">
+                    <p class="text-[#a0a0c0] text-sm">Demo: admin / password</p>
                 </div>
-                
-                <button type="submit" 
-                        class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 px-4 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition duration-300 font-medium">
-                    Sign In
-                </button>
-            </form>
-            <div class="mt-4 text-center">
-                <p class="text-gray-600 text-sm">Demo: admin / password</p>
             </div>
         </div>
-    </div>
 
-    <!-- Main Application (Upload & Download Pages) -->
-    <div id="mainApp" class="main-container hidden">
-        <!-- Navigation -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-to-r from-purple-600 to-indigo-600">
-            <div class="container">
-                <a class="navbar-brand font-bold" href="#">PDF Manager</a>
-                <div class="d-flex">
-                    <button class="btn btn-outline-light me-2" id="navUpload">Upload</button>
-                    <button class="btn btn-outline-light me-2" id="navDownload">Download/View</button>
-                    <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
+        <!-- Main Application -->
+        <div id="mainApp" class="main-container hidden">
+            <!-- Navigation -->
+            <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+                <div class="container-fluid">
+                    <a class="navbar-brand logo" href="#">PDF Ocean</a>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-light me-2" id="navUpload">Upload</button>
+                        <button class="btn btn-outline-light me-2" id="navDownload">Download/View</button>
+                        <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
+                    </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
 
-        <!-- Page Content -->
-        <div class="container py-4">
             <!-- Upload Page -->
             <div id="uploadPage" class="page-content">
                 <div class="row justify-content-center">
                     <div class="col-lg-8">
-                        <div class="bg-white rounded-xl shadow-lg p-6">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-4">Upload PDF Files</h2>
+                        <div class="bg-[rgba(20,20,40,0.7)] rounded-xl shadow-lg p-6 backdrop-blur-sm border border-[rgba(255,255,255,0.1)]">
+                            <h2 class="text-2xl font-bold mb-4" style="color: #ffaa00;">Upload PDF Files</h2>
                             
                             <div class="mb-4">
-                                <label for="uploaderName" class="block text-gray-700 font-medium mb-2">Your Name</label>
+                                <label for="uploaderName" class="block text-[#e0e0ff] font-medium mb-2">Your Name</label>
                                 <input type="text" 
                                        id="uploaderName" 
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                       class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#ffaa00] focus:outline-none"
                                        placeholder="Enter your full name">
                             </div>
                             
-                            <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center mb-6">
+                            <div class="border-2 border-dashed border-[rgba(255,255,255,0.2)] rounded-xl p-6 text-center mb-6">
                                 <div class="flex flex-col items-center justify-center py-8">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-[#a0a0c0] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                     </svg>
-                                    <p class="text-gray-600 mb-2">Drag & drop PDF files here</p>
-                                    <p class="text-gray-500 text-sm mb-4">or</p>
+                                    <p class="text-[#e0e0ff] mb-2">Drag & drop PDF files here</p>
+                                    <p class="text-[#a0a0c0] text-sm mb-4">or</p>
                                     <input type="file" 
                                            id="pdfUpload" 
                                            multiple 
                                            accept=".pdf" 
                                            class="hidden">
                                     <label for="pdfUpload" 
-                                           class="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg cursor-pointer hover:from-purple-700 hover:to-indigo-700 transition duration-300">
+                                           class="px-6 py-2 btn-gradient rounded-lg cursor-pointer font-medium">
                                         Browse Files
                                     </label>
                                 </div>
@@ -149,7 +251,7 @@
                             </div>
                             
                             <button id="uploadBtn" 
-                                    class="w-full mt-4 bg-gradient-to-r from-green-600 to-teal-600 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-teal-700 transition duration-300 font-medium disabled:opacity-50"
+                                    class="w-full mt-4 btn-gradient py-2 px-4 rounded-lg font-medium disabled:opacity-50"
                                     disabled>
                                 Upload Files
                             </button>
@@ -162,41 +264,39 @@
             <div id="downloadPage" class="page-content hidden">
                 <div class="row mb-4">
                     <div class="col">
-                        <h2 class="text-2xl font-bold text-gray-800">Your Uploaded PDFs</h2>
-                        <p class="text-gray-600">View, download, or manage your documents</p>
+                        <h2 class="text-2xl font-bold" style="color: #ffaa00;">Your Uploaded PDFs</h2>
+                        <p class="text-[#e0e0ff]">View, download, or manage your documents</p>
                     </div>
                 </div>
                 
                 <div class="row">
-                    <!-- File List Sidebar -->
                     <div class="col-lg-4 mb-4 mb-lg-0">
-                        <div class="bg-white rounded-xl shadow-lg p-4 h-100">
-                            <h3 class="font-bold text-lg mb-4 pb-2 border-b">Uploaded Files</h3>
+                        <div class="bg-[rgba(20,20,40,0.7)] rounded-xl shadow-lg p-4 h-100 backdrop-blur-sm border border-[rgba(255,255,255,0.1)]">
+                            <h3 class="font-bold text-lg mb-4 pb-2 border-b border-[rgba(255,255,255,0.1)]" style="color: #ffaa00;">Uploaded Files</h3>
                             <div id="downloadFileList" class="space-y-3 max-h-500 overflow-y-auto">
                                 <!-- Files will be listed here -->
                             </div>
-                            <div id="noFilesMessage" class="text-center py-8 text-gray-500 hidden">
+                            <div id="noFilesMessage" class="text-center py-8 text-[#a0a0c0] hidden">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                                 <p>No files uploaded yet</p>
-                                <button id="goToUpload" class="mt-3 text-sm text-purple-600 hover:text-purple-800 font-medium">
+                                <button id="goToUpload" class="mt-3 text-sm text-[#ffaa00] hover:text-[#ffcc00] font-medium">
                                     Upload your first PDF
                                 </button>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Preview Area -->
                     <div class="col-lg-8">
-                        <div class="bg-white rounded-xl shadow-lg p-4 h-100">
+                        <div class="bg-[rgba(20,20,40,0.7)] rounded-xl shadow-lg p-4 h-100 backdrop-blur-sm border border-[rgba(255,255,255,0.1)]">
                             <div id="previewContainer" class="pdf-preview-container">
                                 <div id="previewPlaceholder" class="empty-state">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                                     </svg>
                                     <h3 class="text-xl font-medium mb-2">Select a PDF to preview</h3>
-                                    <p class="text-gray-600">Click on a file from the list to view it here</p>
+                                    <p class="text-[#a0a0c0]">Click on a file from the list to view it here</p>
                                 </div>
                                 <iframe id="pdfPreview" class="w-full h-full hidden"></iframe>
                             </div>
@@ -204,7 +304,7 @@
                                 <a id="downloadLink" 
                                    href="#" 
                                    download 
-                                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-300 font-medium disabled:opacity-50 hidden">
+                                   class="inline-flex items-center px-4 py-2 btn-gradient rounded-lg font-medium hidden">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
@@ -219,6 +319,129 @@
     </div>
 
     <script>
+        // =============== OCEAN SHADER IMPLEMENTATION ===============
+        let scene, camera, renderer, ocean;
+        let uniforms, time = 0;
+
+        function initOcean() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Ocean geometry (large plane)
+            const geometry = new THREE.PlaneGeometry(200, 200, 128, 128);
+            
+            // Ocean shader material
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_time: { value: 0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_mouse: { value: new THREE.Vector2(0, 0) }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float u_time;
+                    uniform vec2 u_resolution;
+                    uniform vec2 u_mouse;
+                    varying vec2 vUv;
+                    
+                    // Ocean color palette
+                    vec3 oceanColor(float depth) {
+                        vec3 water = vec3(0.0, 0.1, 0.2);
+                        vec3 shallow = vec3(0.0, 0.3, 0.5);
+                        vec3 foam = vec3(0.8, 0.9, 1.0);
+                        return mix(mix(water, shallow, smoothstep(0.0, 0.7, depth)), foam, smoothstep(0.7, 1.0, depth));
+                    }
+                    
+                    // Simplex noise for waves
+                    float noise(vec2 st) {
+                        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+                    }
+                    
+                    float fbm(vec2 st) {
+                        float value = 0.0;
+                        float amplitude = 0.5;
+                        for (int i = 0; i < 4; i++) {
+                            value += amplitude * noise(st);
+                            st *= 2.0;
+                            amplitude *= 0.5;
+                        }
+                        return value;
+                    }
+                    
+                    void main() {
+                        vec2 uv = vUv;
+                        vec2 coord = uv * 2.0 - 1.0;
+                        coord.x *= u_resolution.x / u_resolution.y;
+                        
+                        // Create wave pattern
+                        float wave = fbm(coord * 2.0 + u_time * 0.2);
+                        wave += fbm(coord * 4.0 + u_time * 0.3) * 0.5;
+                        wave += fbm(coord * 8.0 + u_time * 0.4) * 0.25;
+                        
+                        // Add mouse interaction
+                        float dist = distance(coord, u_mouse * 2.0 - 1.0);
+                        wave += (1.0 - smoothstep(0.0, 0.5, dist)) * sin(u_time * 5.0) * 0.3;
+                        
+                        // Ocean depth based on wave height
+                        float depth = smoothstep(-0.5, 0.5, wave);
+                        
+                        // Final color
+                        vec3 color = oceanColor(depth);
+                        color += vec3(0.1) * sin(wave * 20.0 + u_time) * 0.1;
+                        
+                        gl_FragColor = vec4(color, 0.9);
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            // Rotate ocean to be horizontal
+            ocean = new THREE.Mesh(geometry, material);
+            ocean.rotation.x = -Math.PI / 2;
+            ocean.position.y = -10;
+            scene.add(ocean);
+            
+            camera.position.set(0, 5, 15);
+            
+            // Handle mouse position
+            document.addEventListener('mousemove', (e) => {
+                material.uniforms.u_mouse.value.set(
+                    e.clientX / window.innerWidth,
+                    1.0 - e.clientY / window.innerHeight
+                );
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+            });
+            
+            // Animation loop
+            const animate = () => {
+                requestAnimationFrame(animate);
+                time += 0.01;
+                material.uniforms.u_time.value = time;
+                renderer.render(scene, camera);
+            };
+            animate();
+        }
+
+        // =============== PDF MANAGEMENT SYSTEM ===============
         // DOM Elements
         const loginPage = document.getElementById('loginPage');
         const mainApp = document.getElementById('mainApp');
@@ -239,7 +462,7 @@
         const downloadLink = document.getElementById('downloadLink');
         const goToUpload = document.getElementById('goToUpload');
         
-        // Get stored files from localStorage or initialize empty array
+        // Get stored files from localStorage
         let storedFiles = JSON.parse(localStorage.getItem('pdfFiles')) || [];
         
         // Initialize the app
@@ -250,16 +473,8 @@
         
         // Show specific page
         function showPage(pageId) {
-            // Hide all pages
-            uploadPage.classList.add('hidden');
-            downloadPage.classList.add('hidden');
-            
-            // Show requested page
-            document.getElementById(pageId).classList.remove('hidden');
-            
-            // Update active nav button
-            navUpload.classList.toggle('active', pageId === 'uploadPage');
-            navDownload.classList.toggle('active', pageId === 'downloadPage');
+            uploadPage.classList.toggle('hidden', pageId !== 'uploadPage');
+            downloadPage.classList.toggle('hidden', pageId !== 'downloadPage');
         }
         
         // Login functionality
@@ -296,7 +511,7 @@
         });
         goToUpload.addEventListener('click', () => showPage('uploadPage'));
         
-        // Uploaded files array (for current session)
+        // Uploaded files array
         let uploadedFiles = [];
         
         // File selection handler
@@ -316,7 +531,7 @@
         // Render upload file list
         function renderFileList() {
             if (uploadedFiles.length === 0) {
-                fileList.innerHTML = '<p class="text-gray-500 text-center py-4">No files selected</p>';
+                fileList.innerHTML = '<p class="text-[#a0a0c0] text-center py-4">No files selected</p>';
                 uploadBtn.disabled = true;
                 return;
             }
@@ -326,13 +541,13 @@
             
             uploadedFiles.forEach((file, index) => {
                 const fileCard = document.createElement('div');
-                fileCard.className = 'pdf-card bg-gray-50 rounded-lg p-4 mb-3 flex justify-between items-center';
+                fileCard.className = 'pdf-card bg-[rgba(20,20,40,0.5)] rounded-lg p-4 mb-3 flex justify-between items-center';
                 fileCard.innerHTML = `
                     <div>
-                        <h3 class="font-medium text-gray-800 truncate max-w-xs">${file.name}</h3>
-                        <p class="text-sm text-gray-500">${(file.size / 1024).toFixed(2)} KB</p>
+                        <h3 class="font-medium text-[#e0e0ff] truncate max-w-xs">${file.name}</h3>
+                        <p class="text-sm text-[#a0a0c0]">${(file.size / 1024).toFixed(2)} KB</p>
                     </div>
-                    <button class="text-red-500 hover:text-red-700" data-index="${index}">
+                    <button class="text-[#ffaa00] hover:text-[#ffcc00]" data-index="${index}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
@@ -364,20 +579,18 @@
                 return;
             }
             
-            // Convert files to stored format with metadata
+            // Convert files to stored format
             const newFiles = uploadedFiles.map(file => {
                 return {
                     name: file.name,
                     size: file.size,
                     uploader: name,
                     uploadDate: new Date().toISOString(),
-                    // In real app: store server URL instead of base64
-                    // For demo: create object URL (will be lost on page refresh)
                     url: URL.createObjectURL(file)
                 };
             });
             
-            // Save to "storage" (localStorage)
+            // Save to localStorage
             storedFiles = [...storedFiles, ...newFiles];
             localStorage.setItem('pdfFiles', JSON.stringify(storedFiles));
             
@@ -388,7 +601,6 @@
             pdfUpload.value = '';
             uploadBtn.disabled = true;
             
-            // Show success message
             alert(`Successfully uploaded ${newFiles.length} file(s)!`);
         });
         
@@ -405,10 +617,10 @@
             
             storedFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
-                fileItem.className = 'pdf-card p-3 cursor-pointer border rounded-lg hover:bg-gray-50';
+                fileItem.className = 'pdf-card p-3 cursor-pointer border rounded-lg hover:bg-[rgba(255,170,0,0.1)] transition';
                 fileItem.innerHTML = `
-                    <div class="font-medium text-gray-800 truncate">${file.name}</div>
-                    <div class="text-xs text-gray-500 mt-1">
+                    <div class="font-medium text-[#ffaa00] truncate">${file.name}</div>
+                    <div class="text-xs text-[#a0a0c0] mt-1">
                         <span>${(file.size / 1024).toFixed(2)} KB</span> • 
                         <span>${file.uploader}</span>
                     </div>
@@ -424,23 +636,19 @@
         
         // Show PDF preview
         function showPdfPreview(file) {
-            // Show preview
             previewPlaceholder.classList.add('hidden');
             pdfPreview.classList.remove('hidden');
             pdfPreview.src = file.url;
             
-            // Set download link
             downloadLink.href = file.url;
             downloadLink.download = file.name;
             downloadLink.classList.remove('hidden');
         }
         
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check if user is already logged in (simplified)
-            // In real app: check session cookie or JWT
+        // Initialize everything when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            initOcean();
         });
     </script>
 </body>
 </html>
-
